@@ -7,41 +7,40 @@ This works with JSON from an API request or the HTML from your processed templat
 
 Caching JSON, Basecamp API example:
 
-	// pull in jsonMyCache from the current directory
+	// pull in jsonMyCache  and create a jsonMyCache cache object
 	require_once('jsonMyCache/jsonMyCache.inc.php');
-
-	// create a jsonMyCache caching object
 	$config->joc = new jsonMyCache("localhost","username","password","database",'a_table_prefix_namespace'); 
 
-	// Fetch this Basecamp object
-	$response = $config->joc->get("/projects.json"); // Check the jsonMyCache namespace for this stored JSON
+	// Fetch Basecamp projects
+	$response = $config->joc->get("/projects.json");
 	if($response == false)
 	{
-    	$response = bcx_query($endPoint); // It wasn't in our cache, go get a fresh copy from the API
-    	$config->joc->set($endPoint,$response); // Cache it.  Now, the next API call will come from the cache!
+		// It wasn't in the cache.  Get it and cache it.
+    		$response = bcx_query($endPoint);
+    		$config->joc->set($endPoint,$response);
 	}
-	$bcxo = json_decode($response); // For convenience, convert that JSON response into PHP data
 
+	// Do something with that response!
+	$bcxo = json_decode($response);
 
-In the above example I implement a cached wrapper around some Basecamp API calls I wrappesd up inside the bcx_query($endPoint) function.
 
 Caching HTML, processed template example:
+
+	// pull in jsonMyCache  and create a jsonMyCache cache object
+	require_once('jsonMyCache/jsonMyCache.inc.php');
+	$config->joc = new jsonMyCache("localhost","username","password","database",'a_table_prefix_namespace'); 
 
 	// grab a Twig template we want to render
 	$template = $config->twig->loadTemplate('project.html');
 
-	// See if we have rendered HTML for this template in the cache
+	// Check the cache for this template
 	$o_html = $config->joc->get('project_html');
 	if($o_html == false)    {
-      	// No, we don't have the output of this template cached
-      	// Render the template
-      	$o_html = $template->render(array('navigation' => $config->navigation,
-                                'bcx_account' => $bcx_account,
-                                'page' => 'Project',
-                                'project' => $project,)
-                                );
-      	// Cache the results of rendering so the next page load will come from the cache
-      	$config->joc->set('project_html',$o_html);
+		//  It's not in the cache.  Render it and cache it.
+      		$o_html = $template->render(array('project' => $project));
+      		$config->joc->set('project_html',$o_html);
 	}
+
+	// Deliver the page
 	echo  $o_html;
 
