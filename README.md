@@ -1,9 +1,12 @@
 jsonMyCache
 ===========
 
-Do you want to pull data into your website/mobile app from an API but you don't want to request the same data over and over from that API?  I wrote the simple json caching code for use on my namecheap shared hosting account which doesn't have access to memcahe.  I do have access to MySQL.  This class library makes it easy to use a MySQL database as a cache for any textual data like the JSON from an API request or the HTML from your processed templates.  This is a single file you can drop in place on your server and begin caching after supplying your database settings with only a couple lines of code.
+Want to pull data into your website/mobile app from an API and you don't want to request the same data over and over from that API?  This PHP file will cache your json, html, or other text results in a MySQL database.  It's just the thing when you don't have memcache on your host.
+
+This works with JSON from an API request or the HTML from your processed templates.  This is a single file you can drop in place on your server.  You'll create a cache with two lines of code and get and set things with two more lines!
 
 Caching JSON, Basecamp API example:
+
 	// pull in jsonMyCache from the current directory
 	require_once('jsonMyCache/jsonMyCache.inc.php');
 
@@ -23,6 +26,7 @@ Caching JSON, Basecamp API example:
 In the above example I implement a cached wrapper around some Basecamp API calls I wrappesd up inside the bcx_query($endPoint) function.
 
 Caching HTML, processed template example:
+
 	// grab a Twig template we want to render
 	$template = $config->twig->loadTemplate('project.html');
 
