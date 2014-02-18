@@ -1,8 +1,9 @@
 <?php
 
+
 class jsonMyCache
 {
-	// begin public methods
+	// Constructor
 	public function __construct($host,$user,$password,$database,$namespace)
 	{
 		$this->joc_table = 'jsonmycache_' . $namespace;
@@ -14,6 +15,7 @@ class jsonMyCache
 	    		okey VARCHAR(50) PRIMARY KEY,
 	    		value TEXT,
 	    		ivalue int,
+	    		etag TEXT,
 	    		last_set DATETIME DEFAULT NULL
 			);";
 	
@@ -24,19 +26,22 @@ class jsonMyCache
 		//echo "Opened connection to the database.<br/>";
 	}
 
+
+	// Destructor
 	public function __destruct()
 	{
 		mysqli_close($this->con);
 		//echo "Closed connection to the database.<br/>";
 	}
 
+
 	// begin public methods
-	public function set($key,$value)
+	public function set($key,$value,$etag="")
 	{
 		$dbready_value = $this->con->real_escape_string($value);
 
-		$sql = "INSERT INTO `".$this->joc_table."` (`okey`,`value`,`last_set`)" .
-	    		" VALUES ('$key', '$dbready_value', NOW())" .
+		$sql = "INSERT INTO `".$this->joc_table."` (`okey`,`value`,`etag`,`last_set`)" .
+	    		" VALUES ('$key', '$dbready_value', '$etag', NOW())" .
 			" ON DUPLICATE KEY UPDATE value='$dbready_value', last_set=NOW();";
 		$result = $this->con->query($sql);
 		//if ($result == TRUE)
@@ -45,32 +50,43 @@ class jsonMyCache
 		//{echo "Error: " .$this->con->error . "<BR/>";}
 	}
 
-	public function get($key,$fresh = false)
+
+	public function get($key,$etag=false)
 	{
 
 		// Check the cache unless we're asked for a fresh object
-		if ($fresh == false)
-		{
-			$sql = "SELECT value FROM " . $this->joc_table .
+		//if ($fresh == true)
+		//{return false;}
+
+		$sql = "SELECT value,etag FROM " . $this->joc_table .
 				" WHERE okey='$key'" . 
 				" AND `last_set` > TIMESTAMPADD(HOUR,-1,NOW());";
-			$result = $this->con->query($sql);
-		}
+		$result = $this->con->query($sql);
 
 		if ($result == true)
 		{
 			$row = $result->fetch_assoc();
-	    		//echo "Select returned " .  $result->num_rows . " rows";
-	    		/* free result set */
 	    		$result->close();
 		
 			//echo "Cache hit!  Returned " . $key . " from cache: " . var_dump($row['value']);
-			return $row['value'];
+			if($etag)
+			{return $row;}
+			else
+			{return $row['value'];}
 		}
 		else
 		{return false;}
 		//{echo "Errors: " .$this->con->error . "<Br/><br />";}
 	}
+
+
+	public function flush()
+	{
+		$sql = "DELETE FROM `".$this->joc_table."`;";
+		$result = $this->con->query($sql);
+		//echo $this->con->error;
+	}
+
 
 	// Planned features
 	public function inc($key)
