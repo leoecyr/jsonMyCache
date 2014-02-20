@@ -9,6 +9,10 @@ class jsonMyCache
 		$this->joc_table = 'jsonmycache_' . $namespace;
 
 		$this->con = new mysqli($host,$user,$password,$database);
+
+		// To show handle properties
+		//var_dump($this->con);
+
 		if (mysqli_connect_errno())
 		{echo "Failed to connect to MySQL: " . mysqli_connect_error();}
 		$sql = "CREATE TABLE ".$this->joc_table." (
@@ -44,32 +48,41 @@ class jsonMyCache
 	    		" VALUES ('$key', '$dbready_value', '$etag', NOW())" .
 			" ON DUPLICATE KEY UPDATE value='$dbready_value', last_set=NOW();";
 		$result = $this->con->query($sql);
-		//if ($result == TRUE)
+		//if ($result)
+		//{echo "New Record has id " . $this->con->insert_id;}
+		//else
+		//{echo "Error: " .$this->con->error . "<BR/>";}
+	}
+
+	public function last_set($key)
+	{
+
+		$sql = "UPDATE `".$this->joc_table."` SET last_set=NOW() WHERE okey='$key';";
+		$result = $this->con->query($sql);
+		//if ($result)
 		//{echo "New Record has id " . $this->con->insert_id;}
 		//else
 		//{echo "Error: " .$this->con->error . "<BR/>";}
 	}
 
 
-	public function get($key,$etag=false)
+	public function get($key,$complete=false)
 	{
-
 		// Check the cache unless we're asked for a fresh object
 		//if ($fresh == true)
 		//{return false;}
 
-		$sql = "SELECT value,etag FROM " . $this->joc_table .
-				" WHERE okey='$key'" . 
-				" AND `last_set` > TIMESTAMPADD(HOUR,-1,NOW());";
+		$sql = "SELECT * FROM " . $this->joc_table ." WHERE okey='$key';";
+				//" AND `last_set` > TIMESTAMPADD(HOUR,-1,NOW());";
 		$result = $this->con->query($sql);
-
 		if ($result == true)
 		{
 			$row = $result->fetch_assoc();
 	    		$result->close();
-		
+
 			//echo "Cache hit!  Returned " . $key . " from cache: " . var_dump($row['value']);
-			if($etag)
+
+			if($complete == true)
 			{return $row;}
 			else
 			{return $row['value'];}
