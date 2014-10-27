@@ -1,33 +1,45 @@
 <?php
 
+class ConnectionFailed extends Exception { }
+
 
 class jsonMyCache
 {
 	// Constructor
 	public function __construct($host,$user,$password,$database,$namespace)
 	{
+		$this->debug = false;
+
+		if($namespace == "")
+		{throw new ConnectionFailed("No namespace provided.  Connection failed.");}
+		//{return false;}
+
+		$this->namespace = $namespace;
 		$this->joc_table = 'jsonmycache_' . $namespace;
 
 		$this->con = new mysqli($host,$user,$password,$database);
-
-		// To show handle properties
-		//var_dump($this->con);
-
 		if (mysqli_connect_errno())
-		{echo "Failed to connect to MySQL: " . mysqli_connect_error();}
-		$sql = "CREATE TABLE ".$this->joc_table." (
+		{error_log("ERROR: Failed to connect to MySQL: " . mysqli_connect_error());}
+
+		$sql = "CREATE TABLE IF NOT EXISTS ".$this->joc_table." (
 	    		okey VARCHAR(50) PRIMARY KEY,
-	    		value TEXT,
-	    		ivalue int,
+	    		value LONGTEXT,
 	    		etag TEXT,
 	    		last_set DATETIME DEFAULT NULL
 			);";
-	
-		if ($this->con->query($sql) === TRUE)
-	    	{echo("Table .$this->joc_table. successfully created.<br/>\n");}
-		//else
-		//{echo "Failed to create ".$this->joc_table." table with error " . $this->con->error . "<Br/>";}
-		//echo "Opened connection to the database.<br/>";
+
+		if ($this->debug)
+		{error_log("DEBUG: jsonMyCache running SQL: " . $sql);}
+
+		$result = $this->con->query($sql);
+		if ( ($result == TRUE) && $this->debug)
+	    	{error_log("DEBUG: Table .$this->joc_table. exists or was successfully created.");}
+
+		if($this->con->error)
+		{error_log("ERROR: Failed to create ".$this->joc_table." table with error " . $this->con->error );}
+
+		if ($this->debug)
+		{error_log("DEBUG: Opened connection to the database using namespace: " . $namespace);}
 	}
 
 
@@ -35,7 +47,8 @@ class jsonMyCache
 	public function __destruct()
 	{
 		mysqli_close($this->con);
-		//echo "Closed connection to the database.<br/>";
+		if($this->debug)
+		{error_log("Closed connection to the database using namespace: " . $this->namespace);}
 	}
 
 
@@ -48,10 +61,11 @@ class jsonMyCache
 	    		" VALUES ('$key', '$dbready_value', '$etag', NOW())" .
 			" ON DUPLICATE KEY UPDATE value='$dbready_value', last_set=NOW();";
 		$result = $this->con->query($sql);
-		//if ($result)
-		//{echo "New Record has id " . $this->con->insert_id;}
-		//else
-		//{echo "Error: " .$this->con->error . "<BR/>";}
+		if ($result && $this->debug)
+		{error_log("DEBUG: New Record has id " . $this->con->insert_id);}
+
+		if($this->con->error)
+		{error_log("ERROR: " .$this->con->error);}
 	}
 
 	public function last_set($key)
@@ -59,10 +73,11 @@ class jsonMyCache
 
 		$sql = "UPDATE `".$this->joc_table."` SET last_set=NOW() WHERE okey='$key';";
 		$result = $this->con->query($sql);
-		//if ($result)
-		//{echo "New Record has id " . $this->con->insert_id;}
-		//else
-		//{echo "Error: " .$this->con->error . "<BR/>";}
+		if ($result && $this->debug)
+		{error_log("DEBUG: New Record has id " . $this->con->insert_id);}
+
+		if($this->con->error)
+		{error_log("ERROR: " .$this->con->error);}
 	}
 
 
@@ -74,13 +89,21 @@ class jsonMyCache
 
 		$sql = "SELECT * FROM " . $this->joc_table ." WHERE okey='$key';";
 				//" AND `last_set` > TIMESTAMPADD(HOUR,-1,NOW());";
+
+		if ($this->debug)
+		{error_log("DEBUG: jsonMyCache::get() running SQL: " . $sql);}
+
 		$result = $this->con->query($sql);
+		if($this->con->error)
+		{error_log("ERROR: " .$this->con->error);}
+
 		if ($result == true)
 		{
 			$row = $result->fetch_assoc();
 	    		$result->close();
 
-			//echo "Cache hit!  Returned " . $key . " from cache: " . var_dump($row['value']);
+			if($this->debug)
+			{"Cache hit!  Returned " . $key . " from cache: " . var_dump($row['value']);}
 
 			if($complete == true)
 			{return $row;}
@@ -89,7 +112,6 @@ class jsonMyCache
 		}
 		else
 		{return false;}
-		//{echo "Errors: " .$this->con->error . "<Br/><br />";}
 	}
 
 
@@ -97,23 +119,21 @@ class jsonMyCache
 	{
 		$sql = "DELETE FROM `".$this->joc_table."`;";
 		$result = $this->con->query($sql);
-		//echo $this->con->error;
+		if($this->con->error)
+		{error_log("Errors: " .$this->con->error);}
 	}
 
-
-	// Planned features
-	public function inc($key)
-	{
-	}
-
-	public function dec($key)
-	{
-	}
 
 	public function delete($key)
 	{
+		$sql = "DELETE FROM `".$this->joc_table."` WHERE `okey`=".$key.";";
+		$result = $this->con->query($sql);
+		if($this->con->error)
+		{
+			error_log("Ran: " . $sql);
+			error_log("Errors: " .$this->con->error);
+		}
 	}
-
 }
 
 ?>
