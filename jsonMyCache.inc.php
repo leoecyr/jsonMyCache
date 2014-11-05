@@ -68,6 +68,7 @@ class jsonMyCache
 		{error_log("ERROR: " .$this->con->error);}
 	}
 
+
 	public function last_set($key)
 	{
 
@@ -83,10 +84,6 @@ class jsonMyCache
 
 	public function get($key,$complete=false)
 	{
-		// Check the cache unless we're asked for a fresh object
-		//if ($fresh == true)
-		//{return false;}
-
 		$sql = "SELECT * FROM " . $this->joc_table ." WHERE okey='$key';";
 				//" AND `last_set` > TIMESTAMPADD(HOUR,-1,NOW());";
 
