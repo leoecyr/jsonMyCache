@@ -9,15 +9,16 @@ Caching JSON, Basecamp API example:
 
 	// pull in jsonMyCache  and create a jsonMyCache cache object
 	require_once('jsonMyCache/jsonMyCache.inc.php');
-	$config->joc = new jsonMyCache("localhost","username","password","database",'a_table_prefix_namespace'); 
+	$joc = new jsonMyCache("localhost","username","password","database",'a_table_prefix_namespace'); 
 
 	// Fetch Basecamp projects
-	$response = $config->joc->get("/projects.json");
+	$endpoint = "/projects.json";
+	$response = $joc->get($endpoint);
 	if($response == false)
 	{
 		// It wasn't in the cache.  Get it and cache it.
     		$response = bcx_query($endPoint);
-    		$config->joc->set($endPoint,$response);
+    		$joc->set($endPoint,$response);
 	}
 
 	// Do something with that response!
@@ -26,19 +27,23 @@ Caching JSON, Basecamp API example:
 
 Caching HTML, processed template example:
 
+	// Assuming you love Twig, and have it installed...
+	$loader = new Twig_Loader_Filesystem('./templates');
+	$twig = new Twig_Environment($loader, array('debug' => true));
+
 	// pull in jsonMyCache  and create a jsonMyCache cache object
 	require_once('jsonMyCache/jsonMyCache.inc.php');
-	$config->joc = new jsonMyCache("localhost","username","password","database",'a_table_prefix_namespace'); 
+	$joc = new jsonMyCache("localhost","username","password","database",'a_table_prefix_namespace'); 
 
 	// grab a Twig template we want to render
-	$template = $config->twig->loadTemplate('project.html');
+	$template = $twig->loadTemplate('project.html');
 
 	// Check the cache for this template
-	$o_html = $config->joc->get('project_html');
+	$o_html = $joc->get('project_html');
 	if($o_html == false)    {
 		//  It's not in the cache.  Render it and cache it.
       		$o_html = $template->render(array('project' => $project));
-      		$config->joc->set('project_html',$o_html);
+      		$joc->set('project_html',$o_html);
 	}
 
 	// Deliver the page
